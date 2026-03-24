@@ -1,3 +1,10 @@
+//
+//  AddressSearchView.swift
+//  AddressSearchView
+//
+//  Created by Stanislav on 24/03/2026.
+//
+
 import SwiftUI
 import MapKit
 

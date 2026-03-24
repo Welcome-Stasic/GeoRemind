@@ -1,14 +1,17 @@
 import SwiftUI
 import CoreLocation
-import MapKit
 
 struct AddReminderView: View {
     @Environment(\.dismiss) var dismiss
-    @ObservedObject var locationManager: LocationManager
+    @ObservedObject var remindersViewModel: RemindersViewModel
+    let currentUser: UserProfile
+    let availableUsers: [UserProfile]
     
     @State private var title = ""
     @State private var selectedLocation: CLLocationCoordinate2D?
     @State private var selectedAddress = ""
+    @State private var selectedObserver: UserProfile?
+    @State private var radius: Double = 100
     @State private var showingAddressSearch = false
     
     var body: some View {
@@ -16,6 +19,16 @@ struct AddReminderView: View {
             Form {
                 Section("Что нужно сделать?") {
                     TextField("Например: купить молоко", text: $title)
+                }
+                
+                Section("Кому?") {
+                    Picker("Выберите наблюдателя", selection: $selectedObserver) {
+                        Text("Выберите человека").tag(nil as UserProfile?)
+                        ForEach(availableUsers, id: \.self) { user in
+                            Text(user.name)
+                                .tag(user as UserProfile?)
+                        }
+                    }
                 }
                 
                 Section("Где?") {
@@ -37,8 +50,21 @@ struct AddReminderView: View {
                         }
                     }
                 }
+                
+                Section("Радиус срабатывания (\(Int(radius)) м)") {
+                    Slider(value: $radius, in: 50...500, step: 50)
+                    .tint(.blue)
+                    
+                    HStack {
+                        Text("50 м")
+                        Spacer()
+                        Text("500 м")
+                    }
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                }
             }
-            .navigationTitle("Новое напоминание")
+            .navigationTitle("Новая метка")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -50,7 +76,7 @@ struct AddReminderView: View {
                     Button("Сохранить") {
                         saveReminder()
                     }
-                    .disabled(title.isEmpty || selectedLocation == nil)
+                    .disabled(title.isEmpty || selectedLocation == nil || selectedObserver == nil)
                 }
             }
             .sheet(isPresented: $showingAddressSearch) {
@@ -63,14 +89,29 @@ struct AddReminderView: View {
     }
     
     private func saveReminder() {
-        guard let location = selectedLocation else { return }
-        locationManager.addReminder(
+        guard let location = selectedLocation,
+              let observer = selectedObserver else { return }
+        
+        remindersViewModel.addReminder(
             title: title,
             at: location,
-            address: selectedAddress
+            address: selectedAddress,
+            observerEmail: observer.email,
+            observerName: observer.name,
+            radius: radius
         )
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            dismiss()
-        }
+        dismiss()
     }
+}
+
+#Preview {
+    AddReminderView(
+        remindersViewModel: RemindersViewModel(currentUser: nil),
+        currentUser: UserProfile(id: "1", email: "me@test.com", name: "Я"),
+        availableUsers: [
+            UserProfile(id: "1", email: "me@test.com", name: "Я"),
+            UserProfile(id: "2", email: "pavel@com.com", name: "Павел"),
+            UserProfile(id: "3", email: "anatoliy@com.com", name: "Анатолий")
+        ]
+    )
 }
