@@ -83,6 +83,7 @@ struct ContentView: View {
         .sheet(isPresented: $showingAddReminder) {
             AddReminderView(
                 remindersViewModel: remindersViewModel,
+                locationManager: locationManager,
                 currentUser: user,
                 availableUsers: remindersViewModel.allUsers
             )

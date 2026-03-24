@@ -50,7 +50,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         sendNotification(for: reminder)
         onNotification?(reminder)
     }
-    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        print("Получены координаты: \(locations.first?.coordinate ?? CLLocationCoordinate2D())")
+    }
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         print(error.localizedDescription)
     }
@@ -71,5 +73,21 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         )
         
         UNUserNotificationCenter.current().add(request)
+    }
+    func requestLocation(completion: @escaping (CLLocationCoordinate2D, String) -> Void) {
+        self.locationManager.requestLocation()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            guard let self = self else { return }
+            
+            if let location = self.locationManager.location {
+                CLGeocoder().reverseGeocodeLocation(location) { placemarks, _ in
+                    let address = placemarks?.first?.name ?? "\(location.coordinate.latitude), \(location.coordinate.longitude)"
+                    completion(location.coordinate, address)
+                }
+            } else {
+                print("Не удалось получить местоположение")
+            }
+        }
     }
 }

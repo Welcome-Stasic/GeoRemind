@@ -1,9 +1,10 @@
 import SwiftUI
 import CoreLocation
-
 struct AddReminderView: View {
     @Environment(\.dismiss) var dismiss
     @ObservedObject var remindersViewModel: RemindersViewModel
+    @ObservedObject var locationManager: LocationManager
+    
     let currentUser: UserProfile
     let availableUsers: [UserProfile]
     
@@ -13,6 +14,7 @@ struct AddReminderView: View {
     @State private var selectedObserver: UserProfile?
     @State private var radius: Double = 100
     @State private var showingAddressSearch = false
+    @State private var isCurrentLocation = false
     
     var body: some View {
         NavigationStack {
@@ -50,6 +52,21 @@ struct AddReminderView: View {
                         }
                     }
                 }
+                Button {
+                    isCurrentLocation = true
+                    locationManager.requestLocation { coordinate, address in
+                        selectedLocation = coordinate
+                        selectedAddress = address
+                        isCurrentLocation = false
+                    }
+                } label: {
+                    if isCurrentLocation {
+                        ProgressView()
+                    } else {
+                        Label("Использовать моё местоположение", systemImage: "location")
+                    }
+                }
+                .disabled(isCurrentLocation)
                 
                 Section("Радиус срабатывания (\(Int(radius)) м)") {
                     Slider(value: $radius, in: 50...500, step: 50)
@@ -107,6 +124,7 @@ struct AddReminderView: View {
 #Preview {
     AddReminderView(
         remindersViewModel: RemindersViewModel(currentUser: nil),
+        locationManager: LocationManager(),
         currentUser: UserProfile(id: "1", email: "me@test.com", name: "Я"),
         availableUsers: [
             UserProfile(id: "1", email: "me@test.com", name: "Я"),
